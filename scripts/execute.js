@@ -18,19 +18,19 @@ async function main() {
   
   // Use the function from the accountFactory
   const AccountFactory = await hre.ethers.getContractFactory("AccountFactory");
-  const [signer0] = await hre.ethers.getSigners();
+  const [signer0,signer1] = await hre.ethers.getSigners();
   const address0 = await signer0.getAddress();
 
   const initCode = "0x";
-//   const initCode = FACTORY_ADDRESS + AccountFactory.interface.encodeFunctionData("createAccount", [address0]).slice(2);  // its for initial account deployment
+  // const initCode = FACTORY_ADDRESS + AccountFactory.interface.encodeFunctionData("createAccount", [address0]).slice(2);  // its for initial account deployment
   
   // Use the function from the account
   const Account = await hre.ethers.getContractFactory("Account");
 
 //   Deposite the initial payment to paymasters
-//     await EPoint.depositTo(sender, {
-//     value: hre.ethers.parseUnits("2", "ether") // Ensure this is a hex string
-//   })
+  //   await EPoint.depositTo(PAYMASTER_ADDRESS, {
+  //   value: hre.ethers.parseUnits("2", "ether") // Ensure this is a hex string
+  // })
 
 
   const userOp = {
@@ -38,16 +38,16 @@ async function main() {
     nonce: await EPoint.getNonce(sender, 0),
     initCode,
     callData: Account.interface.encodeFunctionData("execute"),
-    callGasLimit: 200_000,
-    verificationGasLimit: 200_000,
+    callGasLimit: 500_000,
+    verificationGasLimit: 500_000,
     preVerificationGas: 50_000,
     maxFeePerGas: ethers.parseUnits("10", "gwei"),
     maxPriorityFeePerGas: ethers.parseUnits("5", "gwei"), 
     paymasterAndData: PAYMASTER_ADDRESS, // we're not using a paymaster, for now
     signature: "0x", // we're not validating a signature, for now
   }
-
-  // console.log("accountGasLimits, preVerificationGas, gasFees", userOp.accountGasLimits,userOp.preVerificationGas,userOp.gasFees);
+    const userOpHash = await EPoint.getUserOpHash(userOp);
+    userOp.signature = signer0.signMessage(hre.ethers.getBytes(userOpHash));
 
   try {
     // Sending a transaction using handleOps and waiting for it to be mined
