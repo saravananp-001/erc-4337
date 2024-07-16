@@ -7,6 +7,7 @@ import "hardhat/console.sol";
 import "@account-abstraction/contracts/core/EntryPoint.sol";
 import "@account-abstraction/contracts/interfaces/IAccount.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import "@openzeppelin/contracts/utils/Create2.sol";
 
 contract Account is IAccount{
     address public owner;
@@ -35,7 +36,21 @@ contract Account is IAccount{
 
 contract AccountFactory {
     function createAccount(address _owner) public returns (address) {
-        Account newAccount = new Account(_owner);
-        return address(newAccount);
+        // This is basic create methode
+        // Account newAccount = new Account(_owner);
+        // return address(newAccount);
+
+        // This is create2 methode
+        // uint256 amount, bytes32 salt, bytes memory bytecode
+        bytes32 salt =bytes32(bytes20(uint160(_owner)));
+        bytes memory bytecode = abi.encodePacked(type(Account).creationCode, abi.encode(_owner));
+
+        address addr = Create2.computeAddress(salt, keccak256(bytecode));
+        if(addr.code.length > 0){
+            return addr;
+        }
+
+        return Create2.deploy(0,salt,bytecode);
+
     }
 }
