@@ -17,40 +17,42 @@ contract Account is IAccount{
         owner = _owner;
     }
 
-    // validate against the owner sign by the userOpHash and string
-    function validateUserOp(
-        UserOperation calldata userOp,
-        bytes32 userOpHash,
-        uint256
-    ) external view  returns (uint256 validationData){
-        console.log("inside the validareUserOp");
+    function validateUserOp(UserOperation calldata userOp, bytes32 userOpHash, uint256)
+        external
+        view
+        returns (uint256 validationData)
+    {
         address recovered = ECDSA.recover(ECDSA.toEthSignedMessageHash(userOpHash), userOp.signature);
+
         return owner == recovered ? 0 : 1;
     }
 
-    // This is our state changing function, which could be called anything
     function execute() external {
         count++;
     }
 }
 
 contract AccountFactory {
-    function createAccount(address _owner) public returns (address) {
-        // This is basic create methode
-        // Account newAccount = new Account(_owner);
-        // return address(newAccount);
-
-        // This is create2 methode
-        // uint256 amount, bytes32 salt, bytes memory bytecode
-        bytes32 salt =bytes32(bytes20(uint160(_owner)));
-        bytes memory bytecode = abi.encodePacked(type(Account).creationCode, abi.encode(_owner));
+    function createAccount(address owner) external returns (address) {
+        bytes32 salt = bytes32(uint256(uint160(owner)));
+        bytes memory creationCode = type(Account).creationCode;
+        bytes memory bytecode = abi.encodePacked(creationCode, abi.encode(owner));
 
         address addr = Create2.computeAddress(salt, keccak256(bytecode));
-        if(addr.code.length > 0){
+        uint256 codeSize = addr.code.length;
+        if (codeSize > 0) {
             return addr;
         }
 
-        return Create2.deploy(0,salt,bytecode);
+        return deploy(salt, bytecode);
+    }
 
+    function deploy(bytes32 salt, bytes memory bytecode) internal returns (address addr) {
+        require(bytecode.length != 0, "Create2: bytecode length is zero");
+        /// @solidity memory-safe-assembly
+        assembly {
+            addr := create2(0, add(bytecode, 0x20), mload(bytecode), salt)
+        }
+        require(addr != address(0), "Create2: Failed on deploy");
     }
 }
