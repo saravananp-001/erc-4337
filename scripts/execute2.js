@@ -75,7 +75,7 @@ async function main() {
       const response = await ethers.provider.send("eth_getUserOperationByHash", [opHash]);
       
       if (response.transactionHash) {
-        return response.transactionHash;
+        return response;
       }
   
       // Wait for a specified delay before retrying
@@ -85,7 +85,7 @@ async function main() {
 
   try {
     const userOperation = await getUserOperationByHash(opHash);
-    console.log("User Operation:", userOperation);
+    console.log("transaction hash:", userOperation.transactionHash);
   } catch (error) {
     console.error("Error:", error);
   }
