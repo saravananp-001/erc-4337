@@ -69,14 +69,26 @@ async function main() {
   ]);
 
   console.log("User Operation Hash:", opHash);
-  setTimeout(async () => {
-    const transactionHash  = await ethers.provider.send(
-      "eth_getUserOperationByHash",
-      [opHash]
-    );
+  
+  async function getUserOperationByHash(opHash, delay = 2000) {
+    for (let i = 0; true; i++) {
+      const response = await ethers.provider.send("eth_getUserOperationByHash", [opHash]);
+      
+      if (response.transactionHash) {
+        return response.transactionHash;
+      }
+  
+      // Wait for a specified delay before retrying
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
 
-    console.log({transactionHash});
-  }, 5000);
+  try {
+    const userOperation = await getUserOperationByHash(opHash);
+    console.log("User Operation:", userOperation);
+  } catch (error) {
+    console.error("Error:", error);
+  }
 }
 
 main().catch((error) => {
